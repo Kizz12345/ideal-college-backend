@@ -1,14 +1,14 @@
 /**
  * IDEAL COLLEGE, Ijokodo-Agbaje
- * Database layer - SQLite (file-based, real DB, no separate server needed)
- * Run: npm install better-sqlite3
+ * Database layer - uses Node's BUILT-IN SQLite module (node:sqlite).
+ * No npm install needed for the database, no native compiling,
+ * works out of the box on Render (Node 22.13+ / Node 24+ / Node 26).
  */
-const Database = require("better-sqlite3");
+const { DatabaseSync } = require("node:sqlite");
 const crypto = require("crypto");
 const path = require("path");
 
-const db = new Database(path.join(__dirname, "..", "school.db"));
-db.pragma("journal_mode = WAL");
+const db = new DatabaseSync(path.join(__dirname, "school.db"));
 
 // ---------- Schema ----------
 db.exec(`
@@ -21,16 +21,13 @@ CREATE TABLE IF NOT EXISTS users (
   address TEXT,
   passwordHash TEXT NOT NULL,
 
-  -- student-only fields
   class TEXT,
   guardianName TEXT,
   guardianPhone TEXT,
 
-  -- staff-only fields
   department TEXT,
   subjectsTaught TEXT,
 
-  -- approval workflow
   status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('pending','active','rejected')),
   createdBy TEXT,
   approvedBy TEXT,
@@ -43,7 +40,7 @@ CREATE TABLE IF NOT EXISTS results (
   studentId TEXT NOT NULL,
   session TEXT NOT NULL,
   term TEXT NOT NULL,
-  subjects TEXT NOT NULL,       -- JSON array: [{name,ca,exam,total,grade}]
+  subjects TEXT NOT NULL,
   position TEXT,
   teacherRemark TEXT,
   principalRemark TEXT,
@@ -59,39 +56,23 @@ CREATE TABLE IF NOT EXISTS terms (
 );
 `);
 
-// ---------- Helpers ----------
 function hash(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
-// ---------- Seed (only runs once, if tables are empty) ----------
+// ---------- Seed (only runs once) ----------
 const userCount = db.prepare("SELECT COUNT(*) AS c FROM users").get().c;
 if (userCount === 0) {
   const insert = db.prepare(`
     INSERT INTO users (id, fullName, role, gender, phone, address, passwordHash, class, guardianName, guardianPhone, department, subjectsTaught, status, createdBy, approvedBy)
-    VALUES (@id,@fullName,@role,@gender,@phone,@address,@passwordHash,@class,@guardianName,@guardianPhone,@department,@subjectsTaught,@status,@createdBy,@approvedBy)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  insert.run({
-    id: "ADMIN/001", fullName: "Mrs. Folasade Ojo", role: "admin", gender: "Female",
-    phone: "08012345678", address: "Ijokodo, Ibadan", passwordHash: hash("admin123"),
-    class: null, guardianName: null, guardianPhone: null, department: "Administration",
-    subjectsTaught: null, status: "active", createdBy: "system", approvedBy: "system"
-  });
+  insert.run("ADMIN/001", "Mrs. Folasade Ojo", "admin", "Female", "08012345678", "Ijokodo, Ibadan", hash("admin123"), null, null, null, "Administration", null, "active", "system", "system");
 
-  insert.run({
-    id: "PRINCIPAL/001", fullName: "Dr. Emeka Obi", role: "principal", gender: "Male",
-    phone: "08099999999", address: "Agbaje, Ibadan", passwordHash: hash("principal123"),
-    class: null, guardianName: null, guardianPhone: null, department: "Principal's Office",
-    subjectsTaught: null, status: "active", createdBy: "system", approvedBy: "system"
-  });
+  insert.run("PRINCIPAL/001", "Dr. Emeka Obi", "principal", "Male", "08099999999", "Agbaje, Ibadan", hash("principal123"), null, null, null, "Principal's Office", null, "active", "system", "system");
 
-  insert.run({
-    id: "ICS/2025/001", fullName: "Adebayo Oluwaseun", role: "student", gender: "Male",
-    phone: null, address: "Ijokodo, Ibadan", passwordHash: hash("student123"),
-    class: "JSS 3", guardianName: "Mr. Adebayo Tunde", guardianPhone: "08031234567",
-    department: null, subjectsTaught: null, status: "active", createdBy: "ADMIN/001", approvedBy: "PRINCIPAL/001"
-  });
+  insert.run("ICS/2025/001", "Adebayo Oluwaseun", "student", "Male", null, "Ijokodo, Ibadan", hash("student123"), "JSS 3", "Mr. Adebayo Tunde", "08031234567", null, null, "active", "ADMIN/001", "PRINCIPAL/001");
 
   db.prepare(`
     INSERT INTO terms (id, currentSession, currentTerm, resumptionDate, vacationDate)
