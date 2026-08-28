@@ -2,9 +2,12 @@
   "name": "ideal-college-backend",
   "version": "2.0.0",
   "description": "Backend for Ideal College, Ijokodo-Agbaje - with SQLite DB and admin/principal approval workflow",
-  "main": "backend/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "dependencies": {
     "express": "^4.19.2",
