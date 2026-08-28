@@ -17,7 +17,7 @@ function generateToken(user) {
 function verifyToken(token) {
   try {
     const decoded = Buffer.from(token, "base64").toString("utf-8");
-    const [id, role, ts, sig``nature] = decoded.split(":");
+    const [id, role, ts, signature] = decoded.split(":");
     const expected = crypto.createHmac("sha256", SECRET).update(`${id}:${role}:${ts}`).digest("hex");
     if (signature !== expected) return null;
     return { id, role };
