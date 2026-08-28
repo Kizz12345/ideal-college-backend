@@ -5,7 +5,6 @@
  */
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
 
 require("./db"); // initializes school.db and seeds default accounts on first run
 
@@ -19,7 +18,6 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "..", "frontend")));
 
 app.get("/api/school", (req, res) => {
   res.json({
