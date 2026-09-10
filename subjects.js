@@ -8,7 +8,7 @@ const ALL_CLASSES = [...JUNIOR_CLASSES, ...SENIOR_CLASSES];
 const JUNIOR_SUBJECTS = [
   "English Language", "Mathematics", "RNV / National Values", "PHE", "Home Economics",
   "Business Studies", "ICT / Data Processing", "Yoruba Language", "Basic Technology",
-  "Agricultural Science", "Basic Science", "CCA"
+  "Agricultural Science", "Basic Science", "History", "CCA"
 ];
 
 const SENIOR_SUBJECTS = [
