@@ -1,7 +1,6 @@
 /**
  * IDEAL COLLEGE, Ijokodo-Agbaje
  * Main backend server
- * Run: npm install && npm start
  */
 const express = require("express");
 const cors = require("cors");
@@ -12,12 +11,17 @@ const authRoutes = require("./auth");
 const studentRoutes = require("./students");
 const staffRoutes = require("./staff");
 const resultRoutes = require("./results");
+const sessionRoutes = require("./sessions");
+const galleryRoutes = require("./gallery");
+const newsletterRoutes = require("./newsletters");
+const activityRoutes = require("./activity");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(express.json());
+// Raised from the default 100kb — passport photos and newsletter files are sent as base64.
+app.use(express.json({ limit: "15mb" }));
 
 app.get("/api/school", (req, res) => {
   res.json({
@@ -34,6 +38,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/students", studentRoutes);
 app.use("/api/staff", staffRoutes);
 app.use("/api/results", resultRoutes);
+app.use("/api/sessions", sessionRoutes);
+app.use("/api/gallery", galleryRoutes);
+app.use("/api/newsletters", newsletterRoutes);
+app.use("/api/activity", activityRoutes);
 
 app.use("/api", (req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
@@ -41,5 +49,4 @@ app.use("/api", (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`IDEAL COLLEGE server running on http://localhost:${PORT}`);
-  console.log(`Database file: school.db (created automatically in project root)`);
 });
