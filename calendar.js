@@ -45,13 +45,15 @@ router.delete("/", authMiddleware, requireRole(...LEADERSHIP_ROLES), (req, res) 
 // GET /api/calendar/directory/class-teachers
 router.get("/directory/class-teachers", authMiddleware, (req, res) => {
   const teachers = db.prepare("SELECT id, firstName, lastName, email FROM users WHERE role = 'class_teacher'").all();
-  res.json({ success: true, teachers });
+  const isStudent = req.user.role === "student";
+  res.json({ success: true, teachers: teachers.map((t) => isStudent ? { id: t.id, firstName: t.firstName, lastName: t.lastName } : t) });
 });
 
 // GET /api/calendar/directory/staff - every registered admin/staff account
 router.get("/directory/staff", authMiddleware, (req, res) => {
   const staff = db.prepare("SELECT id, firstName, lastName, email, role FROM users WHERE role NOT IN ('student','developer')").all();
-  res.json({ success: true, staff });
+  const isStudent = req.user.role === "student";
+  res.json({ success: true, staff: staff.map((s) => isStudent ? { id: s.id, firstName: s.firstName, lastName: s.lastName, role: s.role } : s) });
 });
 
 module.exports = router;
