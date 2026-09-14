@@ -80,6 +80,13 @@ CREATE TABLE IF NOT EXISTS activity_log (
   createdAt TEXT DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS hero_slides (
+  slot INTEGER PRIMARY KEY CHECK (slot IN (1,2,3)),
+  imageData TEXT,
+  uploadedBy TEXT,
+  uploadedAt TEXT
+);
+
 CREATE TABLE IF NOT EXISTS academic_calendar (
   id INTEGER PRIMARY KEY CHECK (id = 1),
   fileName TEXT,
