@@ -40,7 +40,7 @@ const RATING_OPTIONS = ["excellent", "fair", "low", "poor"];
 
 // Junior secondary: word-based remarks on the full 0-100 total.
 function remarkForJunior(total) {
-  if (total <= 39) return "F9";
+  if (total <= 39) return "Fail";
   if (total <= 44) return "B. Average";
   if (total <= 49) return "Fair";
   if (total <= 54) return "Average";
