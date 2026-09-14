@@ -38,7 +38,8 @@ const AFFECTIVE_TRAITS = ["Punctuality", "Class Attendance", "Reliability", "Nea
 const PSYCHOMOTOR_SKILLS = ["Handwriting", "Fluency / Verbal Skills", "Games", "Sports", "Handling Tools / Lab Equipment", "Drawing / Painting", "Crafts", "Musical Skills"];
 const RATING_OPTIONS = ["excellent", "fair", "low", "poor"];
 
-function remarkFor(total) {
+// Junior secondary: word-based remarks on the full 0-100 total.
+function remarkForJunior(total) {
   if (total <= 39) return "F9";
   if (total <= 44) return "B. Average";
   if (total <= 49) return "Fair";
@@ -48,13 +49,41 @@ function remarkFor(total) {
   return "Excellent";
 }
 
+// Senior secondary: WAEC-style letter grades on the full 0-100 total.
+function remarkForSenior(total) {
+  if (total >= 75) return "A1";
+  if (total >= 70) return "B2";
+  if (total >= 65) return "B3";
+  if (total >= 60) return "C4";
+  if (total >= 55) return "C5";
+  if (total >= 50) return "C6";
+  if (total >= 45) return "D7";
+  if (total >= 40) return "E8";
+  return "F9";
+}
+
+function remarkForLevel(total, level) {
+  return level === "senior" ? remarkForSenior(total) : remarkForJunior(total);
+}
+
+// Mid Term Score subtab uses a SEPARATE scale, based on the CA total out of 40 —
+// same for junior and senior, and unaffected by the report-sheet remark above.
+function midTermRemark(caTotal) {
+  if (caTotal <= 9) return "Poor";
+  if (caTotal <= 15) return "Low";
+  if (caTotal <= 20) return "Fair";
+  if (caTotal <= 26) return "Average";
+  if (caTotal <= 33) return "Hardworking";
+  return "Excellent";
+}
+
 function initialsFor(user) {
   const first = (user.firstName || "").trim()[0] || "";
   const last = (user.lastName || "").trim()[0] || "";
   return (first + last).toUpperCase();
 }
 
-function computeSubjectEntry(s, teacher, existing = {}) {
+function computeSubjectEntry(s, teacher, existing = {}, level) {
   const ca1 = Number(s.ca1 ?? existing.ca1 ?? 0), note = Number(s.note ?? existing.note ?? 0),
         assignment = Number(s.assignment ?? existing.assignment ?? 0), midTermTest = Number(s.midTermTest ?? existing.midTermTest ?? 0),
         exam = Number(s.exam ?? existing.exam ?? 0);
@@ -67,7 +96,7 @@ function computeSubjectEntry(s, teacher, existing = {}) {
     name: s.name,
     ca1, note, assignment, midTermTest,
     firstCA, secondCA, exam, total,
-    remark: remarkFor(total),
+    remark: remarkForLevel(total, level),
     signature: initialsFor(teacher),
     uploadedBy: teacher.id
   };
@@ -131,7 +160,7 @@ router.get("/class/:classGrade/:session/:term", authMiddleware, requireRole(...C
 router.post("/scores", authMiddleware, requireRole(...CAN_UPLOAD_SCORES), (req, res) => {
   if (!hasActiveSession()) return noActiveSessionResponse(res);
 
-  const { subject, session, term, scores, mode } = req.body;
+  const { subject, session, term, scores, mode, classGrade } = req.body;
   if (!subject || !session || !term || !Array.isArray(scores)) {
     return res.status(400).json({ success: false, message: "subject, session, term and scores[] are required" });
   }
@@ -139,10 +168,11 @@ router.post("/scores", authMiddleware, requireRole(...CAN_UPLOAD_SCORES), (req, 
     return res.status(409).json({ success: false, message: `Scores can only be uploaded for the current session (${currentSession()}).` });
   }
 
+  const level = levelForClass(classGrade);
   const teacher = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
   scores.forEach((s) => {
     const existing = getExistingSubject(s.studentId, session, term, subject);
-    const entry = computeSubjectEntry({ ...s, name: subject }, teacher, existing);
+    const entry = computeSubjectEntry({ ...s, name: subject }, teacher, existing, level);
     upsertSubjectScore(s.studentId, session, term, entry);
   });
 
@@ -182,7 +212,7 @@ router.get("/class/:classGrade/:session/:term/:subject/export.csv", authMiddlewa
 router.post("/import-csv", authMiddleware, requireRole(...CAN_UPLOAD_SCORES), (req, res) => {
   if (!hasActiveSession()) return noActiveSessionResponse(res);
 
-  const { subject, session, term, csv, mode } = req.body;
+  const { subject, session, term, csv, mode, classGrade } = req.body;
   if (!subject || !session || !term || !csv) {
     return res.status(400).json({ success: false, message: "subject, session, term and csv are required" });
   }
@@ -190,6 +220,7 @@ router.post("/import-csv", authMiddleware, requireRole(...CAN_UPLOAD_SCORES), (r
     return res.status(409).json({ success: false, message: `Scores can only be imported for the current session (${currentSession()}).` });
   }
 
+  const level = levelForClass(classGrade);
   const teacher = db.prepare("SELECT * FROM users WHERE id = ?").get(req.user.id);
   const lines = csv.trim().split("\n").slice(1);
   let count = 0;
@@ -208,7 +239,7 @@ router.post("/import-csv", authMiddleware, requireRole(...CAN_UPLOAD_SCORES), (r
       scoreInput = { name: subject, ca1, note, assignment, midTermTest };
     }
 
-    const entry = computeSubjectEntry(scoreInput, teacher, existing);
+    const entry = computeSubjectEntry(scoreInput, teacher, existing, level);
     upsertSubjectScore(studentId, session, term, entry);
     count++;
   });
